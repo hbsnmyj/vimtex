@@ -343,7 +343,11 @@ function! s:get_main_recurse(...) abort " {{{1
         \ . '\s*\f*' . fnamemodify(l:file, ':t:r')
 
   " Search through candidates found recursively upwards in the directory tree
-  for l:cand in s:findfiles_recursive('*.tex', fnamemodify(l:file, ':p:h'))
+  let l:file_list = s:findfiles_recursive('*.tex', fnamemodify(l:file, ':p:h'))
+  let l:file_list = l:file_list + s:findfiles_recursive('*.Rnw', fnamemodify(l:file, ':p:h'))
+  let l:file_list = l:file_list + s:findfiles_recursive('*.Rtex', fnamemodify(l:file, ':p:h'))
+
+  for l:cand in l:file_list
     if index(l:tried[l:file], l:cand) >= 0 | continue | endif
     call add(l:tried[l:file], l:cand)
 

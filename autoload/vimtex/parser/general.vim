@@ -97,6 +97,11 @@ function! s:parser.input_line_parser_tex(line, current_file, re) abort dict " {{
       return s:input_to_filename(
           \ substitute(copy(l:file), '{.{-}}', '', ''), l:root)
     endif
+  elseif l:file =~# g:vimtex#re#rnoweb_input_latex
+      let l:root = self.root
+      let l:new_file = substitute(copy(l:file), g:vimtex#re#rnoweb_input_latex, '', '')
+      let l:new_file = substitute(copy(l:new_file), "'\>\>\=", '', '')
+      return s:input_to_filename_simple(l:new_file, l:root)
   else
     return s:input_to_filename(l:file, self.root)
   endif
@@ -144,6 +149,26 @@ function! s:input_to_filename(input, root) abort " {{{1
   if l:file !~# '\v^(\/|[A-Z]:)'
     let l:file = a:root . '/' . l:file
   endif
+
+
+  " Only return filename if it is readable
+  return filereadable(l:file) ? l:file : ''
+endfunction
+
+" }}}1
+
+function! s:input_to_filename_simple(input, root) abort " {{{1
+  let l:file = a:input
+  " Ensure that the file name has extension
+  if empty(fnamemodify(l:file, ':e'))
+    let l:file .= '.tex'
+  endif
+
+  " Use absolute paths
+  if l:file !~# '\v^(\/|[A-Z]:)'
+    let l:file = a:root . '/' . l:file
+  endif
+
 
   " Only return filename if it is readable
   return filereadable(l:file) ? l:file : ''

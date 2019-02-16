@@ -15,10 +15,12 @@ let g:vimtex#re#tex_input_latex = '\v\\%('
       \        '|') . ')\s*\{'
 let g:vimtex#re#tex_input_import =
       \ '\v\\%(sub)?%(import|%(input|include)from)\*?\{[^\}]*\}\{'
+let g:vimtex#re#rnoweb_input_latex = '\v%(\<\<.*child\s*\=\s*' . "')"
 
 let g:vimtex#re#tex_input = '\v^\s*%(' . join([
       \   g:vimtex#re#tex_input_latex,
       \   g:vimtex#re#tex_input_import,
+      \   g:vimtex#re#rnoweb_input_latex,
       \ ], '|') . ')'
 
 let g:vimtex#re#tex_include = g:vimtex#re#tex_input_root
