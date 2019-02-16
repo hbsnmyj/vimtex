@@ -366,12 +366,12 @@ endfunction
 " }}}1
 function! vimtex#state#doc_suffixes() abort " {{{1
   " get the files that matches desired extensions
-  let l:formats_exts_list = map(deepcopy(g:vimtex_rnoweb_formats), 'v:val["ext"]')
-  let l:formats = ['.tex']
+  let l:formats_exts_list = map(deepcopy(g:vimtex_rnoweb_formats), 'v:val.ext')
+  let l:formats = []
   for l:format_exts in l:formats_exts_list
       let l:formats = extend(l:formats, l:format_exts)
   endfor
-  return l:formats
+  return l:formats + ['.tex']
 endfunction
 " }}}1
 

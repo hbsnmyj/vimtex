@@ -15,7 +15,8 @@ let g:vimtex#re#tex_input_latex = '\v\\%('
       \        '|') . ')\s*\{'
 let g:vimtex#re#tex_input_import =
       \ '\v\\%(sub)?%(import|%(input|include)from)\*?\{[^\}]*\}\{'
-let g:vimtex#re#rnoweb_input_latex = '\v%(\<\<.*child\s*\=\s*' . "')"
+let g:vimtex#re#rnoweb_input_latex = join(map(deepcopy(g:vimtex_rnoweb_formats),
+        \ '"\\v%(" . v:val.beforeincl . "'')"'), "|")
 
 let g:vimtex#re#tex_input = '\v^\s*%(' . join([
       \   g:vimtex#re#tex_input_latex,

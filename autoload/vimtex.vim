@@ -25,8 +25,10 @@ endfunction
 " }}}1
 function! vimtex#init_options() abort " {{{1
   call s:init_option('vimtex_rnoweb_formats', [
-       \     {'ext': ['.Rnw', '.Rtex']}
-       \])
+        \     {'ext': ['.Rnw', '.Rtex'],
+        \      'beforeincl': '\<\<.*child\s*\=\s*',
+        \      'afterincl' : 'b',},
+        \])
   call s:init_option('vimtex_compiler_enabled', 1)
   call s:init_option('vimtex_compiler_method', 'latexmk')
   call s:init_option('vimtex_compiler_progname',
