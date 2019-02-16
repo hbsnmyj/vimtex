@@ -128,5 +128,4 @@ function! vimtex#util#uniq_unsorted(list) abort " {{{1
   endfor
   return a:list
 endfunction
-
 " }}}1

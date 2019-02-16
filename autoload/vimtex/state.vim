@@ -342,10 +342,13 @@ function! s:get_main_recurse(...) abort " {{{1
   let l:re_filter = g:vimtex#re#tex_input
         \ . '\s*\f*' . fnamemodify(l:file, ':t:r')
 
+
+  let l:file_list = []
+  let l:formats = vimtex#state#doc_suffixes()
+  for l:format in l:formats
   " Search through candidates found recursively upwards in the directory tree
-  let l:file_list = s:findfiles_recursive('*.tex', fnamemodify(l:file, ':p:h'))
-  let l:file_list = l:file_list + s:findfiles_recursive('*.Rnw', fnamemodify(l:file, ':p:h'))
-  let l:file_list = l:file_list + s:findfiles_recursive('*.Rtex', fnamemodify(l:file, ':p:h'))
+    let l:file_list = extend(l:file_list, s:findfiles_recursive('*' . l:format, fnamemodify(l:file, ':p:h')))
+  endfor
 
   for l:cand in l:file_list
     if index(l:tried[l:file], l:cand) >= 0 | continue | endif
@@ -359,6 +362,18 @@ function! s:get_main_recurse(...) abort " {{{1
 
   return ''
 endfunction
+
+" }}}1
+function! vimtex#state#doc_suffixes() abort " {{{1
+  " get the files that matches desired extensions
+  let l:formats_exts_list = map(deepcopy(g:vimtex_rnoweb_formats), 'v:val["ext"]')
+  let l:formats = ['.tex']
+  for l:format_exts in l:formats_exts_list
+      let l:formats = extend(l:formats, l:format_exts)
+  endfor
+  return l:formats
+endfunction
+" }}}1
 
 " }}}1
 function! s:file_is_main(file) abort " {{{1

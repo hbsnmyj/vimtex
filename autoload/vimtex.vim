@@ -24,6 +24,9 @@ endfunction
 
 " }}}1
 function! vimtex#init_options() abort " {{{1
+  call s:init_option('vimtex_rnoweb_formats', [
+       \     {'ext': ['.Rnw', '.Rtex']}
+       \])
   call s:init_option('vimtex_compiler_enabled', 1)
   call s:init_option('vimtex_compiler_method', 'latexmk')
   call s:init_option('vimtex_compiler_progname',
@@ -363,7 +366,7 @@ function! s:init_buffer() abort " {{{1
         \ ]
     execute 'set suffixes+=' . l:suf
   endfor
-  setlocal suffixesadd=.Rnw,.tex,.sty,.cls
+  setlocal suffixesadd=join(vimtex#state#doc_formats(), ",") + ".sty,.cls"
   setlocal comments=sO:%\ -,mO:%\ \ ,eO:%%,:%
   setlocal commentstring=%%s
   setlocal iskeyword+=:
