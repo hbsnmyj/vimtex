@@ -175,13 +175,6 @@ function! s:get_main() abort " {{{1
   endif
 
   "
-  " Check if the current file is a main file
-  "
-  if s:file_is_main(expand('%:p'))
-    return expand('%:p')
-  endif
-
-  "
   " Use buffer variable if it exists
   "
   if exists('b:vimtex_main') && filereadable(b:vimtex_main)
@@ -195,6 +188,13 @@ function! s:get_main() abort " {{{1
   let l:candidate = s:get_main_from_texroot()
   if !empty(l:candidate)
     return l:candidate
+  endif
+
+  "
+  " Check if the current file is a main file
+  "
+  if s:file_is_main(expand('%:p'))
+    return expand('%:p')
   endif
 
   "
@@ -251,7 +251,7 @@ function! s:get_main_from_texroot() abort " {{{1
   for l:line in getline(1, 5)
     let l:filename = matchstr(l:line, g:vimtex#re#tex_input_root)
     if len(l:filename) > 0
-      if l:filename[0] ==# '/'
+      if vimtex#paths#is_abs(l:filename)
         if filereadable(l:filename) | return l:filename | endif
       else
         let l:candidate = simplify(expand('%:p:h') . '/' . l:filename)
@@ -269,7 +269,7 @@ function! s:get_main_from_subfile() abort " {{{1
     let l:filename = matchstr(l:line,
           \ '^\C\s*\\documentclass\[\zs.*\ze\]{subfiles}')
     if len(l:filename) > 0
-      if l:filename[0] ==# '/'
+      if vimtex#paths#is_abs(l:filename)
         " Specified path is absolute
         if filereadable(l:filename) | return l:filename | endif
       else
@@ -401,7 +401,7 @@ function! s:file_reaches_current(file) abort " {{{1
     let l:file = matchstr(l:line, g:vimtex#re#tex_input . '\zs\f+')
     if empty(l:file) | continue | endif
 
-    if l:file[0] !=# '/'
+    if !vimtex#paths#is_abs(l:file)
       let l:file = fnamemodify(a:file, ':h') . '/' . l:file
     endif
 
@@ -541,7 +541,7 @@ function! s:vimtex.parse_graphicspath() abort dict " {{{1
   let self.graphicspath = []
   for l:path in split(l:graphicspath, '\s*}\s*{\s*')
     let l:path = substitute(l:path, '\/\s*$', '', '')
-    call add(self.graphicspath, l:path[0] ==# '/'
+    call add(self.graphicspath, vimtex#paths#is_abs(l:path)
           \ ? l:path
           \ : simplify(self.root . '/' . l:path))
   endfor
@@ -664,7 +664,7 @@ function! s:vimtex.ext(ext, ...) abort dict " {{{1
   " First check build dir (latexmk -output_directory option)
   if !empty(get(get(self, 'compiler', {}), 'build_dir', ''))
     let cand = self.compiler.build_dir . '/' . self.name . '.' . a:ext
-    if self.compiler.build_dir[0] !=# '/'
+    if !vimtex#paths#is_abs(self.compiler.build_dir)
       let cand = self.root . '/' . cand
     endif
     if a:0 > 0 || filereadable(cand)

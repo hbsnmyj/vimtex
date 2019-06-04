@@ -83,10 +83,14 @@ let s:completer_bib = {
       \          . '\\(%(no)?bibliography|add(bibresource|globalbib|sectionbib))'
       \          . '\m\s*{\zs[^}]\+\ze}''',
       \ 'type_length' : 0,
-      \ 'bstfile' :  expand('<sfile>:p:h') . '/vimcomplete',
+      \ 'bstfile' : expand('<sfile>:p:h') . '/vimcomplete',
+      \ 'initialized' : 0,
       \}
 
 function! s:completer_bib.init() dict abort " {{{2
+  if self.initialized | return | endif
+  let self.initialized = 1
+
   " Check if bibtex is executable
   if !executable('bibtex')
     let self.enabled = 0
@@ -111,6 +115,9 @@ function! s:completer_bib.init() dict abort " {{{2
     let self.bstfile = tempname()
     call writefile(readfile(l:oldbst), self.bstfile . '.bst')
   endif
+
+  " Add custom patterns
+  let self.patterns += g:vimtex_complete_bib.custom_patterns
 endfunction
 
 function! s:completer_bib.complete(regex) dict abort " {{{2
@@ -161,8 +168,7 @@ function! s:completer_bib.search(regex) dict abort " {{{2
   let res = []
 
   " The bibtex completion seems to require that we are in the project root
-  let l:save_pwd = getcwd()
-  execute 'lcd ' . fnameescape(b:vimtex.root)
+  call vimtex#paths#pushd(b:vimtex.root)
 
   " Find data from external bib files
   let bibfiles = join(self.find_bibs(), ',')
@@ -218,7 +224,7 @@ function! s:completer_bib.search(regex) dict abort " {{{2
   endif
 
   " Return to previous working directory
-  execute 'lcd' fnameescape(l:save_pwd)
+  call vimtex#paths#popd()
 
   " Find data from 'thebibliography' environments
   let lines = readfile(b:vimtex.tex)
@@ -284,7 +290,16 @@ let s:completer_ref = {
       \ 're_context' : '\\\w*{[^}]*$',
       \ 'cache' : {},
       \ 'labels' : [],
+      \ 'initialized' : 0,
       \}
+
+function! s:completer_ref.init() dict abort " {{{2
+  if self.initialized | return | endif
+  let self.initialized = 1
+
+  " Add custom patterns
+  let self.patterns += g:vimtex_complete_ref.custom_patterns
+endfunction
 
 function! s:completer_ref.complete(regex) dict abort " {{{2
   let self.candidates = []
@@ -381,7 +396,12 @@ function! s:completer_ref.parse_labels(file, prefix) dict abort " {{{2
   for l:line in l:lines
     let l:line = s:tex2unicode(l:line)
     let l:tree = s:tex2tree(l:line)[1:]
-    let l:name = a:prefix . remove(l:tree, 0)[0]
+    let l:name = get(remove(l:tree, 0), 0, '')
+    if empty(l:name)
+      continue
+    else
+      let l:name = a:prefix . l:name
+    endif
     let l:context = remove(l:tree, 0)
     if type(l:context) == type([]) && len(l:context) > 1
       let l:number = self.parse_number(l:context[0])
@@ -857,9 +877,7 @@ function! s:load_candidates_from_packages(packages) abort " {{{1
         \ '!has_key(s:candidates_from_packages, v:val)')
   if empty(l:packages) | return | endif
 
-  let l:save_pwd = getcwd()
-  let l:localdir = exists('*haslocaldir') ? haslocaldir() : 1
-  execute l:localdir ? 'lcd' : 'cd' fnameescape(s:complete_dir)
+  call vimtex#paths#pushd(s:complete_dir)
 
   for l:unreadable in filter(copy(l:packages), '!filereadable(v:val)')
     let s:candidates_from_packages[l:unreadable] = {}
@@ -907,7 +925,7 @@ function! s:load_candidates_from_packages(packages) abort " {{{1
     let s:candidates_from_packages[l:package].environments += l:candidates
   endfor
 
-  execute l:localdir ? 'lcd' : 'cd' fnameescape(l:save_pwd)
+  call vimtex#paths#popd()
 endfunction
 
 let s:candidates_from_packages = {}

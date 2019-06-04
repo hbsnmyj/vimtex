@@ -178,16 +178,14 @@ function! vimtex#compiler#output() abort " {{{1
       return
     endif
 
-    " Try to enforce a file read
-    execute 'checktime' self.name
-    redraw
-
     " Go to last line of file if it is not the current window
     if bufwinnr('%') != self.winnr
       let l:return = bufwinnr('%')
       execute 'keepalt' self.winnr . 'wincmd w'
+      edit
       normal! Gzb
       execute 'keepalt' l:return . 'wincmd w'
+      redraw
     endif
   endfunction
   function! s:output.destroy() dict abort
@@ -244,7 +242,9 @@ function! vimtex#compiler#clean(full) abort " {{{1
   sleep 100m
 
   " Remove auxilliary output directories if they are empty
-  let l:build_dir = b:vimtex.root . '/' . b:vimtex.compiler.build_dir
+  let l:build_dir = (vimtex#paths#is_abs(b:vimtex.compiler.build_dir)
+        \ ? '' : b:vimtex.root . '/')
+        \ . b:vimtex.compiler.build_dir
   let l:tree = glob(l:build_dir . '/**/*', 0, 1)
   let l:files = filter(copy(l:tree), 'filereadable(v:val)')
   if !empty(l:files) | return | endif

@@ -41,7 +41,13 @@ function! vimtex#init_options() abort " {{{1
         \ 'recursive': 0,
         \ 'menu_fmt': '[@type] @author_short (@year), "@title"',
         \ 'abbr_fmt': '',
+        \ 'custom_patterns': [],
         \})
+  call s:init_option('vimtex_complete_ref', {
+        \ 'custom_patterns': [],
+        \})
+
+  call s:init_option('vimtex_include_search_enabled', 1)
 
   call s:init_option('vimtex_doc_enabled', 1)
   call s:init_option('vimtex_doc_handlers', [])
@@ -205,6 +211,7 @@ function! vimtex#init_options() abort " {{{1
         \      'beforeincl': '\<\<.*child\s*\=\s*''',
         \      'afterincl' : '''\s*\>\>\=',},
         \])
+  call s:init_option('vimtex_syntax_enabled', 1)
 
   call s:init_option('vimtex_texcount_custom_arg', '')
 
@@ -298,6 +305,15 @@ endfunction
 
 " }}}1
 function! s:init_highlights() abort " {{{1
+  " Check for wrong load order for syntax vs filetype
+  if get(b:, 'current_syntax', '') ==# 'tex'
+    unsilent call vimtex#log#warning([
+          \ '"syntax on" seems to be applied before "filetype plugin on".',
+          \ 'This is suboptimal, because some syntax features require an initialized state.',
+          \ 'Please see ":help vimtex_syntax_filetype".'
+          \])
+  endif
+
   for [l:name, l:target] in [
         \ ['VimtexImapsArrow', 'Comment'],
         \ ['VimtexImapsLhs', 'ModeMsg'],

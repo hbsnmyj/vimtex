@@ -4,9 +4,7 @@
 " Email:      karl.yngve@gmail.com
 "
 
-if !get(g:, 'vimtex_syntax_enabled', 1)
-  finish
-endif
+if !get(g:, 'vimtex_syntax_enabled', 1) | finish | endif
 
 if !exists('b:current_syntax')
   let b:current_syntax = 'tex'
@@ -372,6 +370,7 @@ call TexNewMathZone('I', 'gather', 1)
 call TexNewMathZone('J', 'multline', 1)
 call TexNewMathZone('K', 'xalignat', 1)
 call TexNewMathZone('L', 'xxalignat', 0)
+call TexNewMathZone('M', 'mathpar', 1)
 
 execute 'syntax match texBadMath ''\\end\s*{\s*\(' . join([
       \ 'align',

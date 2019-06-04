@@ -57,6 +57,7 @@ CONTENTS                                                      *vimtex-contents*
     Complete packages and documentclasses       |vimtex-complete-packages|
                                                 |vimtex-complete-classes|
     Autocomplete                                |vimtex-complete-auto|
+      coc.nvim                                  |vimtex-complete-coc.nvim|
       deoplete                                  |vimtex-complete-deoplete|
       Neocomplete                               |vimtex-complete-neocomplete|
       ncm2                                      |vimtex-complete-ncm2|
@@ -71,9 +72,11 @@ CONTENTS                                                      *vimtex-contents*
     Table of contents                           |vimtex-toc|
       Custom mappings                           |vimtex-toc-custom-maps|
     Denite/Unite source                         |vimtex-denite| / |vimtex-unite|
+    fzf.vim integration                         |vimtex-fzf|
   Compilation                                   |vimtex-compiler|
     Latexmk                                     |vimtex-latexmk|
     Latexrun                                    |vimtex-latexrun|
+    Tectonic                                    |vimtex-tectonic|
     Arara                                       |vimtex-arara|
   View                                          |vimtex-view|
     Synctex                                     |vimtex-synctex|
@@ -123,7 +126,7 @@ suffix as a |plaintex|. To prevent this, one may set the option
 -----------------------------------------------------------------------------
 FEATURE OVERVIEW                                              *vimtex-features*
 
-- Document compilation with `latexmk`, `latexrun`, or `arara`
+- Document compilation with `latexmk`, `latexrun`, `tectonic` or `arara`
 - LaTeX log parsing for quickfix entries using
   - internal method
   - `pplatex`
@@ -202,9 +205,27 @@ Vim version~
   to one's `vimrc` file.  This might work, but issues due to older versions
   than the mentioned here will be ignored.
 
+Order of "syntax on" and "filetype plugin on"~
+                                                       *vimtex_syntax_filetype*
+  |vimtex| provides an `after/syntax/tex.vim` that improves syntax highlighting,
+  see |vimtex-syntax|. Some of the improvements require that the filetype
+  plugin has been loaded first. This means one must have the following lines
+  in the following order in ones `vimrc` file: >
+
+    filetype plugin indent on
+    syntax on
+<
+  Note: Many plugin managers, like |vim-plug|, will automatically add these
+        lines in the correct order.
+
+  Note: If you do not have a vimrc file, |defaults.vim| may be loaded and will
+        source the mentioned lines in the wrong order. If one wants to source
+        |defaults.vim|, it is suggested to do it manually and to add the lines
+        above in the correct order first.
+
 Compiler backend~
 
-  |vimtex| uses `latexmk`, `latexrun`, or `arara` to compile the LaTeX document.
+  |vimtex| uses `latexmk`, `latexrun`, `tectonic` or `arara` to compile the LaTeX document.
 
     `latexmk`: http://users.phys.psu.edu/~collins/software/latexmk-jcc
     "a perl script for running LaTeX the correct number of times to resolve
@@ -223,6 +244,13 @@ Compiler backend~
   parse the output log in order to provide a more concise list of relevant
   warnings and error messages (this has currently not been adapted to vimtex,
   as of yet). (|vimtex-latexrun|)
+
+    `tectonic`: https://tectonic-typesetting.github.io/
+    `tectonic` is a complete, self-contained TeX/LaTeX engine, powered by XeTeX
+  and TeXLive. It doesn't support continuous build like `latexmk` but it
+  presents other worth mentioning features such as automatic support file
+  downloading along with reproduceable builds and full Unicode and OpenType
+  fonts support thanks to the power of XeTeX. (|vimtex-tectonic|)
 
     `arara`: https://github.com/cereda/arara
     `arara` is a TeX automation tool similar to the above mentioned tools,
@@ -762,6 +790,10 @@ OPTIONS                                                        *vimtex-options*
       See |vimtex-latexrun| for more details, and |g:vimtex_compiler_latexrun|
       for customization.
 
+    tectonic~
+      See |vimtex-tectonic| for more details, and |g:vimtex_compiler_tectonic|
+      for customization.
+
     arara~
       See |vimtex-arara| for more details, and |g:vimtex_compiler_arara| for
       customization.
@@ -915,7 +947,7 @@ OPTIONS                                                        *vimtex-options*
     Same as |g:vimtex_compiler_latexmk| / `background`.
 
   build_dir~
-    Same as |g:vimtex_compiler_latexmk| / `background`.
+    Same as |g:vimtex_compiler_latexmk| / `build_dir`.
 
   options~
     This is a list of options that are passed to `latexrun`. The default
@@ -943,6 +975,48 @@ OPTIONS                                                        *vimtex-options*
         \ 'lualatex'         : 'lualatex',
         \ 'xelatex'          : 'xelatex',
         \}
+
+*g:vimtex_compiler_tectonic*
+  This is a dictionary that allows customization of the |vimtex-tectonic|
+  compiler. The values set by the user will take precedense over the default
+  values.
+
+  Default value: >
+
+    let g:vimtex_compiler_tectonic = {
+        \ 'backend' : DEPENDS ON SYSTEM (SEE BELOW),
+        \ 'background' : 1,
+        \ 'build_dir' : '',
+        \ 'options' : [
+        \   '--keep-logs',
+        \   '--synctex'
+        \ ],
+        \}
+<
+  The default value shows which entries may be changed. Here the different
+  keys are explained in more detail:
+
+  backend~
+    Same as |g:vimtex_compiler_latexmk| / `backend`.
+
+  background~
+    Same as |g:vimtex_compiler_latexmk| / `background`.
+
+  build_dir~
+    Same as |g:vimtex_compiler_latexmk| / `build_dir`. This will be created if
+    needed, since tectonic won't build anything unless it exists.
+
+  options~
+    This is a list of options that are passed to `tectonic`. The default
+    options should work well for most people. For anyone who wishes to modify
+    these, please note:
+    - Don't use `--outdir` or `-o` here. Use the `build_dir` option instead.
+    - Without `--keep-logs` (or `--keep-intermediates` or `-k)`, you won't see
+      errors/warnings in the quickfix list when compilations finish.
+    - By default, `tectonic` cleans all auxiliary files (such as `.aux`,
+      `.toc`, etc.). If you omit the `--keep-logs` (or similar) options that
+      specify to keep these files, |VimtexClean| and |<plug>(vimtex-clean)|
+      won't delete anything (as there is nothing to delete).
 
 *g:vimtex_compiler_arara*
   This is a dictionary that allows customization of the |vimtex-arara|
@@ -1026,6 +1100,33 @@ OPTIONS                                                        *vimtex-options*
     Default value: `''`
     The format used for the `abbr` entry for bib completion candidates. See
     `menu_fmt` for further description.
+
+  custom_patterns~
+    Default value: []
+    List of custom trigger patterns that may be used to allow completion for
+    e.g. custom macros.
+
+  If one wants to overwrite one of the keys, e.g. the `simple` entry, one can do: >
+
+    let g:vimtex_complete_bib = { 'simple': 1 }
+<
+  This does not modify the other keys and their default values.
+
+*g:vimtex_complete_ref*
+  This option is a dictionary for controlling the label completion. The
+  keys each control a different thing:
+
+  custom_patterns~
+    Default value: []
+    List of custom trigger patterns that may be used to allow completion for
+    e.g. custom macros.
+
+  For example, if one has defined the command `\figref`, one could add following
+  custom pattern >
+
+     let g:vimtex_complete_ref = {
+        \ 'custom_patterns' = ['\\figref\*\?{[^}]*$']
+        \ }
 
 *g:vimtex_delim_list*
   A dictionary that defines the pairs of delimiters that are recognized by
@@ -1163,7 +1264,7 @@ OPTIONS                                                        *vimtex-options*
     name~
       If the type is `command`, this is the name of the command. Else it is
       not defined.
-  
+
   Each handler in the list will be tried until a handler provides a return
   value of 1. One may add handlers that only makes minor modifications of the
   context and passes it on to the default handler, as well as handlers that
@@ -1422,8 +1523,9 @@ OPTIONS                                                        *vimtex-options*
 
 *g:vimtex_format_enabled*
   If enabled, |vimtex| uses a custom |formatexpr| that should handle inline
-  comments. That is, if it is enabled, comments at end of lines will not be
-  joined with the |gq| command.
+  comments and environments. That is, if it is enabled, comments at end of
+  lines will not be joined with the |gq| command, and environments like
+  `equation` will not be joined/changed.
 
   Default value: 0
 
@@ -1456,7 +1558,25 @@ OPTIONS                                                        *vimtex-options*
   of these come from e.g. `\input{file}` or `\include{file}`. This option
   allows to add more commands that are used to include files.
 
+  Note: This option is read during initialization of vimtex, and so it must be
+        set early. I.e., it can not be set in `after/ftplugin/tex.vim`.
+
   Default value: ['input', 'include', 'subfile']
+
+*g:vimtex_include_search_enabled*
+  Vimtex sets 'includeexpr' to recognize included files. If a file isn't found
+  in the current directory, Vimtex uses `kpsewhich` to search for it in the
+  system TeX distribution. If the 'complete' option includes "i", invoking
+  keyword completion with |i_CTRL-N| will search included files for completion
+  possibilities. In this case, there may be a lot of calls to `kpsewhich`
+  while scanning for included files during the first invocation of keyword
+  completion, and this may introduce a significant delay. Subsequent keyword
+  completions should be faster, as the calls to `kpsewhich` are cached.
+
+  This option allows to disable searching for included files with `kpsewhich`,
+  and with that prevent the above explained delay.
+
+  Default value: 1
 
 *g:vimtex_indent_enabled*
   Use this option to disable/enable |vimtex| indentation.
@@ -1642,6 +1762,15 @@ OPTIONS                                                        *vimtex-options*
   and have to be specifically disabled. However, it is possible to use the
   entry `disable` to disable either all warnings, or all package warnings, if
   so desired.
+  Warnings by following packages can be disabled individually:
+  `babel`, `biblatex`, `fixltx2e`, `hyperref`, `natbib`, `scrreprt`, and `titlesec`.
+  The entry `general` under packages can be used to turn off messages of
+  packages matching the pattern >
+
+    Package .* Warning: %m on input line %l.
+<
+  Note: Messages by `natbib` follow also this pattern but have to be turned
+        off with the entry `natbib`.
 
   Some examples may be helpful: >
 
@@ -1671,12 +1800,13 @@ OPTIONS                                                        *vimtex-options*
           \ 'font' : 1,
           \ 'packages' : {
           \   'default' : 1,
-          \   'natbib' : 1,
-          \   'biblatex' : 1,
+          \   'general' : 1,
           \   'babel' : 1,
-          \   'hyperref' : 1,
-          \   'scrreprt' : 1,
+          \   'biblatex' : 1,
           \   'fixltx2e' : 1,
+          \   'hyperref' : 1,
+          \   'natbib' : 1,
+          \   'scrreprt' : 1,
           \   'titlesec' : 1,
           \ },
           \}
@@ -1980,10 +2110,10 @@ OPTIONS                                                        *vimtex-options*
   If enabled, the viewer will open automatically when compilation has started
   in `continuous` mode and if `callback` is enabled, or if `continuous` mode
   is disabled and one uses either the `jobs` or the `nvim` backend.
-  
+
   `latexmk` will typically start the viewer directly.  However, with this
-  option enabled, |vimtex| will also start the viewer through callbacks also
-  for the `latexrun` and `arara` compilers.
+  option enabled, |vimtex| will start the viewer through callbacks also for
+  the |vimtex-latexrun|, |vimtex-arara| and |vimtex-tectonic| compilers.
 
   Default value: 1
 
@@ -2041,6 +2171,24 @@ OPTIONS                                                        *vimtex-options*
                 with `nvim --listen /tmp/nvimserver` (e.g. by using an alias)
                 so as to use a predictable servername. Then one may specify
                 the servername in the "Custom Text Editor" as indicated above.
+
+        *vimtex_viewer_evince*
+          https://wiki.gnome.org/Apps/Evince
+          > Evince is a document viewer for multiple document formats. The
+          > goal of evince is to replace the multiple document viewers that
+          > exist on the GNOME Desktop with a single simple application.
+
+          Recommended settings are: >
+
+            let g:vimtex_view_general_viewer = 'evince'
+<
+          Note: It is not so easy to setup forward and backward search with
+                Evince [0]. If anyone has a good setup that could be
+                documented here, please open an issue or email me. In the
+                meantime, I can recommend to look into the other alternative
+                viewers.
+
+          [0]: https://github.com/lervag/vimtex/issues/179
 
         *vimtex_viewer_qpdfview*
           https://launchpad.net/qpdfview
@@ -2736,11 +2884,12 @@ filenames. If desired, one may set |g:vimtex_complete_close_braces|, which
 makes the completion include closing braces.
 
 Associated settings:
-- |g:vimtex_complete_enabled|
-- |g:vimtex_complete_close_braces|
-- |g:vimtex_complete_ignore_case|
-- |g:vimtex_complete_smart_case|
 - |g:vimtex_complete_bib|
+- |g:vimtex_complete_close_braces|
+- |g:vimtex_complete_enabled|
+- |g:vimtex_complete_ignore_case|
+- |g:vimtex_complete_ref|
+- |g:vimtex_complete_smart_case|
 
 ------------------------------------------------------------------------------
 COMPLETE CITATIONS                                      *vimtex-complete-cites*
@@ -2867,11 +3016,39 @@ Note: If you want to change the default value of `TEXMFHOME` in your shell
 AUTOCOMPLETE                                             *vimtex-complete-auto*
 
 Vim does not provide automatic completion by itself, but there exist at least
-four good plugins that provide this: ||deoplete|, |neocomplete|, |ncm2|,
+several good plugins that provide this: |coc.nvim|, |deoplete|, |neocomplete|, |ncm2|,
 |nvim-completion-manager| and |youcompleteme|.  Moreover, there is |VimCompletesMe|
 that overrides <tab> to trigger different built-in completions, such as the
 omni-completion by vimtex, depending on the context. See below for
 descriptions on how to setup these with |vimtex|.
+
+coc.nvim~
+                                                     *vimtex-complete-coc.nvim*
+|coc.nvim| is an intellisense engine for Vim8 & Neovim. It's a completion
+framework and language server client which supports extension features of
+Visual Studio Code. The project is here: https://github.com/neoclide/coc.nvim.
+
+|coc.nvim| can be installed using vim-plug: >
+
+  Plug 'neoclide/coc.nvim'
+
+However, it does require some more steps, and users are recommended to read
+the installation instructions in the `coc.nvim` wiki:
+https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim
+
+To configure for `vimtex`, one should use the extension plugin |coc-vimtex|,
+which may be found here: https://github.com/neoclide/coc-vimtex. To use it,
+first make sure you have |coc.nvim| installed, then just run: >
+
+  :CocInstall coc-vimtex
+
+Additionally, you can configure code completion for TeX by setting these
+options in |coc.nvim|'s configuration file `coc-settings.json` >
+
+  coc.source.vimtex.disableSyntaxes // disabled syntax names
+  coc.source.vimtex.enable          // set to false to disable this source
+  coc.source.vimtex.priority        // priority of source, default 99
+  coc.source.vimtex.shortcut        // shortcut used in menu of completion item
 
 deoplete~
                                                      *vimtex-complete-deoplete*
@@ -2936,7 +3113,7 @@ The following simple configuration should work well with `vimtex`: >
             \ })
   augroup END
 <
-For more lenient, omni-complete-like, filtering of completion candidates, 
+For more lenient, omni-complete-like, filtering of completion candidates,
 use the following setup (in your init.vim or a personal ftplugin) instead: >
 
   augroup my_cm_setup
@@ -2944,7 +3121,7 @@ use the following setup (in your init.vim or a personal ftplugin) instead: >
     autocmd BufEnter * call ncm2#enable_for_buffer()
     autocmd Filetype tex call ncm2#register_source({
             \ 'name' : 'vimtex-cmds',
-            \ 'priority': 8, 
+            \ 'priority': 8,
             \ 'complete_length': -1,
             \ 'scope': ['tex'],
             \ 'matcher': {'name': 'prefix', 'key': 'word'},
@@ -2954,7 +3131,7 @@ use the following setup (in your init.vim or a personal ftplugin) instead: >
             \ })
     autocmd Filetype tex call ncm2#register_source({
             \ 'name' : 'vimtex-labels',
-            \ 'priority': 8, 
+            \ 'priority': 8,
             \ 'complete_length': -1,
             \ 'scope': ['tex'],
             \ 'matcher': {'name': 'combine',
@@ -2968,7 +3145,7 @@ use the following setup (in your init.vim or a personal ftplugin) instead: >
             \ })
     autocmd Filetype tex call ncm2#register_source({
             \ 'name' : 'vimtex-files',
-            \ 'priority': 8, 
+            \ 'priority': 8,
             \ 'complete_length': -1,
             \ 'scope': ['tex'],
             \ 'matcher': {'name': 'combine',
@@ -2982,7 +3159,7 @@ use the following setup (in your init.vim or a personal ftplugin) instead: >
             \ })
     autocmd Filetype tex call ncm2#register_source({
             \ 'name' : 'bibtex',
-            \ 'priority': 8, 
+            \ 'priority': 8,
             \ 'complete_length': -1,
             \ 'scope': ['tex'],
             \ 'matcher': {'name': 'combine',
@@ -3083,7 +3260,7 @@ Note: The |fold-expr| method of folding is well known to be slow, e.g. for
 In order to get slightly cleaner fold text, I recommend setting the global
 'fillchars' option to a single space for folds: >
 
-  set fillchars=fold:\ 
+  set fillchars=fold:\
 
 Note: Remember to include the whitespace after backslash!
 
@@ -3159,8 +3336,8 @@ parsing the LaTeX project and displaying a table of contents in a separate
 window. For more info, see |vimtex-toc|.
 
 The "engine" for collecting the table-of-content entries may also be used as
-a backend for external plugins. There are sources for |denite.nvim| and
-|unite.vim| that should work well. The source code may be used as inspiration
+a backend for external plugins. There are sources for |denite.nvim|, |unite.vim|
+and |fzf.vim| that should work well. The source code may be used as inspiration
 to write custom sources or sources for other, similar plugins.
 
 ------------------------------------------------------------------------------
@@ -3275,6 +3452,34 @@ one may override the default mapping, e.g.: >
   nnoremap <localleader>lt :<c-u>Denite vimtex<cr>
   nnoremap <localleader>lt :<c-u>Unite vimtex<cr>
 
+------------------------------------------------------------------------------
+FZF INTEGRATION                                                   *vimtex-fzf*
+
+                                           https://github.com/junegunn/fzf.vim
+                                               https://github.com/junegunn/fzf
+|fzf.vim| integrates the general-purpose command-line fuzzy finder |fzf| into vim
+and neovim. Similar to the |denite.vim| and |unite.vim| source it may be used to
+quickly navigate |vimtex|'s built-in ToC feature. To use it, just define a
+mapping to `vimtex#fzf#run()` in your .vimrc, e.g.: >
+
+  nnoremap <localleader>lt :call vimtex#fzf#run()<cr>
+
+You can also choose to only show certain entry "layers", according to this
+table (see |vimtex-toc| for detailed explanation of the "layers"):
+
+  `c`:  content
+  `t`:  todo
+  `l`:  label
+  `i`:  include
+
+The default behavior is to show all layers, i.e. 'ctli'. To only show
+`content` and `label`s use: >
+
+  :call vimtex#fzf#run('ct')
+
+On Windows the python package Colorama is required for colored output.
+For Linux and MacOS colors should work out-of-the-box, even without Colorama.
+
 ==============================================================================
 COMPILER                                                      *vimtex-compiler*
 
@@ -3283,6 +3488,7 @@ backends:
 
   |vimtex-latexmk|   http://users.phys.psu.edu/~collins/software/latexmk-jcc
   |vimtex-latexrun|  https://github.com/aclements/latexrun
+  |vimtex-tectonic|  https://tectonic-typesetting.github.io/
   |vimtex-arara|     https://github.com/cereda/arara
 
 The interface is implemented in a general way, which makes it relatively easy
@@ -3325,7 +3531,10 @@ Associated settings:
   |g:vimtex_compiler_enabled|
   |g:vimtex_compiler_method|
   |g:vimtex_compiler_latexmk|
+  |g:vimtex_compiler_latexmk_engines|
   |g:vimtex_compiler_latexrun|
+  |g:vimtex_compiler_latexrun_engines|
+  |g:vimtex_compiler_tectonic|
   |g:vimtex_compiler_arara|
   |g:vimtex_compiler_progname|
   |g:vimtex_compiler_callback_hooks|
@@ -3408,6 +3617,29 @@ The latter is supported by vimtex, though, through the callback.  See
 The compiler may be configured through the |g:vimtex_compiler_latexrun| option.
 
 ------------------------------------------------------------------------------
+TECTONIC                                                      *vimtex-tectonic*
+
+                                      https://tectonic-typesetting.github.io/
+> Tectonic is a modernized, complete, self-contained TeX/LaTeX engine, powered
+> by XeTeX and TeXLive.
+
+`tectonic` is a compiler backend that features automatic support file
+downloading along with reproduceable builds and full Unicode and OpenType
+fonts support thanks to the power of XeTeX. It does not support continuous
+compilation, like |vimtex-latexmk| and so the only relevant commands are
+|VimtexCompile| to start (single shot) compilation, and |VimtexCompileOutput|
+to see the compilation output. As for |vimtex-latexrun| and |vimtex-arara|,
+the viewer can be started automatically with |g:vimtex_view_automatic|.
+
+`tectonic` cleans up intermediate files like `.aux` and log files by default.
+However, |vimtex|'s backend invoke it with the flags `--keep-logs` and
+`--keep-synctex` which enables us to see the errors on the quickfix and it
+gives us synctex support. Therefor, by default, |<plug>(vimtex-clean)|
+and |VimtexClean| clean these files.
+
+The compiler may be configured through the |g:vimtex_compiler_tectonic| option.
+
+------------------------------------------------------------------------------
 ARARA                                                            *vimtex-arara*
 
                                         https://github.com/cereda/arara
@@ -3420,8 +3652,9 @@ http://ctan.uib.no/support/arara/doc/arara-usermanual.pdf
 
 `arara` does not do continuous compilation, and so the only relevant commands
 are |VimtexCompile| to start (single shot) compilation, and
-|VimtexCompileOutput| to see the compilation output. As for |vimtex-latexrun|,
-the viewer can be started automatically with |g:vimtex_view_automatic|.
+|VimtexCompileOutput| to see the compilation output. As for |vimtex-latexrun|
+and |vimtex-tectonic|, the viewer can be started automatically with
+|g:vimtex_view_automatic|.
 
 The compiler may be configured through the |g:vimtex_compiler_arara| option.
 
@@ -3749,9 +3982,17 @@ Problem: The user wants to use vim-polyglot~
 
 This is a problem, because vim-polyglot [0] includes and enables LaTeX-Box by
 default. LaTeX-Box will not work well with vimtex, e.g. because of conflicting
-mappings.
+mappings. There are two solutions.
 
-Suggested solution: Don't use vim-polyglot.
+Solution 1: Avoid vim-polyglot. This is recommended, because vim-polyglot
+  installs a bunch of filetype plugins that you will not use anyway. Further,
+  one should aim to know which plugins are installed in ones system. It is not
+  a lot of extra work to install whichever extra filetype plugins one need.
+
+Solution 2: If one insists on using vim-polyglot, then one may use
+  |g:polyglot_disabled| to disable LaTeX-Box with: >
+
+  let g:polyglot_disabled = ['latex']
 
 [0]: https://github.com/sheerun/vim-polyglot
 
@@ -3795,13 +4036,27 @@ and `die` results in: >
 
 Solution: It seems that vim for Windows comes with some options set by default
 in the vimrc file. One of these has been reported to be `:behave mswin` (see
-|:behave)| which, among other things, sets the 'selection' option to
+|:behave|) which, among other things, sets the 'selection' option to
 "exclusive". This can be ameliorated by pursuing one of two options:
 
   1) Add `:behave xterm` to your vimrc file.
   2) Add `:set selection=inclusive` to your vimrc file.
 
 See also: https://github.com/lervag/vimtex/issues/408
+
+Problem: Typing <Tab> or <C-n> causes Vim to hang before making a completion~
+
+Vimtex may be scanning included files with `kpsewhich` while collecting
+completion candidates for keyword completion. Try disabling this feature by
+setting |g:vimtex_include_search_enabled| to 0 in your |vimrc|: >
+
+    let g:vimtex_include_search_enabled = 0
+
+Note: Plugins like |supertab| [0], which often maps the |i_<Tab>| key, will
+      typically use keyword completion "behind the scenes" to gather
+      completion candidates.
+
+      [0]: https://github.com/ervandew/supertab
 
 ==============================================================================
 CREDITS                                                        *vimtex-credits*
